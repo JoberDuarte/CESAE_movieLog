@@ -4,6 +4,7 @@
 //
 //  Created by iMac11 on 27/03/2026.
 //
+
 import Foundation
 import Combine
 
@@ -15,7 +16,6 @@ final class SearchMoviesViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     @Published var selectedType: MediaType = .movie
-    @Published var selectedCategory: MediaCategory = .popular
 
     private let service = TMDBService()
 
@@ -31,22 +31,18 @@ final class SearchMoviesViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let response = try await service.fetchMediaPage(
+            let page = try await service.fetchMediaPage(
                 type: selectedType,
-                category: selectedCategory,
+                category: .popular,
                 page: 1
             )
 
-            results = response.items.filter {
+            results = page.items.filter {
                 $0.title.localizedCaseInsensitiveContains(trimmed)
             }
         } catch {
-            errorMessage = "Falha ao pesquisar. Verifica API key e internet."
+            errorMessage = "Erro ao pesquisar. Verifica API key e internet."
             results = []
         }
-    }
-
-    func posterURL(for path: String?) -> URL? {
-        service.fullPosterURL(path: path)
     }
 }

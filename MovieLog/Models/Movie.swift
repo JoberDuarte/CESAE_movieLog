@@ -14,6 +14,18 @@ enum MovieStatus: String, Codable, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
 }
 
+extension Movie {
+    var asMediaItem: MediaItem {
+        MediaItem(
+            tmdbID: tmdbID ?? Int(id.uuidString.hashValue.magnitude % 1_000_000_000),
+            title: title,
+            overview: overview,
+            posterPath: posterPath,
+            mediaType: .movie,
+            voteAverage: personalRating
+        )
+    }
+}
 struct Movie: Identifiable, Codable, Equatable, Hashable {
     let id: UUID
     var title: String

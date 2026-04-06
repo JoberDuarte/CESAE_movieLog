@@ -21,7 +21,7 @@ struct MoviesListView: View {
             VStack(spacing: 10) {
                 Picker("Tipo", selection: $vm.selectedType) {
                     ForEach(MediaType.allCases) { type in
-                        Text(type.rawValue).tag(type)
+                        Text(type.displayName).tag(type)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -31,9 +31,11 @@ struct MoviesListView: View {
                     HStack(spacing: 8) {
                         ForEach(vm.availableCategories) { category in
                             Button {
-                                Task { await vm.changeCategory(category) }
+                                Task {
+                                    await vm.changeCategory(category)
+                                }
                             } label: {
-                                Text(category.rawValue)
+                                Text(category.displayName)
                                     .font(.footnote.weight(.semibold))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
@@ -56,7 +58,9 @@ struct MoviesListView: View {
                             }
                             .buttonStyle(.plain)
                             .onAppear {
-                                Task { await vm.loadNextPageIfNeeded(currentItem: item) }
+                                Task {
+                                    await vm.loadNextPageIfNeeded(currentItem: item)
+                                }
                             }
                         }
 
@@ -72,9 +76,22 @@ struct MoviesListView: View {
                 }
             }
             .navigationTitle("MovieLog")
-            .task { await vm.initialLoad() }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Image("AppLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 28)
+                }
+            }
+            .task {
+                await vm.initialLoad()
+            }
             .onChange(of: vm.selectedType) { _, newType in
-                Task { await vm.changeType(newType) }
+                Task {
+                    await vm.changeType(newType)
+                }
             }
         }
     }
@@ -93,22 +110,26 @@ struct PosterCardView: View {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
-                        image.resizable().scaledToFill()
+                        image
+                            .resizable()
+                            .scaledToFill()
                     case .failure(_):
-                        Image(systemName: "film").foregroundStyle(.gray)
+                        Image(systemName: "film")
+                            .foregroundStyle(.gray)
                     case .empty:
                         ProgressView()
                     @unknown default:
-                        Image(systemName: "film").foregroundStyle(.gray)
+                        Image(systemName: "film")
+                            .foregroundStyle(.gray)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             } else {
-                Image(systemName: "film").foregroundStyle(.gray)
+                Image(systemName: "film")
+                    .foregroundStyle(.gray)
             }
         }
         .frame(height: 170)
         .clipped()
     }
 }
-

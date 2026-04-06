@@ -1,0 +1,3 @@
+Picker("Tipo", selection: $vm.selectedType) {
+    ForEach(MediaType.allCases) { type in
+        Text(type.displayName).tag(type)

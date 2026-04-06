@@ -14,7 +14,6 @@ struct MovieDetailFromMediaView: View {
     @State private var isWatched: Bool = false
     @State private var personalRating: Double = 0
 
-    // <- ESTA PROPRIEDADE resolve o erro
     private var existingMovie: Movie? {
         moviesVM.movies.first(where: { $0.tmdbID == item.tmdbID })
     }
@@ -22,29 +21,38 @@ struct MovieDetailFromMediaView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+
+                // Poster limpo (sem overlay em cima)
                 AsyncPosterView(path: item.posterPath)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 420)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .frame(height: 470)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                     .padding(.horizontal)
 
-                Text(item.title)
-                    .font(.title2.bold())
-                    .padding(.horizontal)
+                // Infos abaixo do poster
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(item.title)
+                        .font(.title2.bold())
 
-                HStack {
-                    Text(item.mediaType == .movie ? "Filme" : "Série")
-                    Spacer()
-                    if let vote = item.voteAverage {
-                        Text("TMDB: \(vote, specifier: "%.1f")")
-                            .foregroundStyle(.orange)
+                    HStack {
+                        Text(item.mediaType == .movie ? "Filme" : "Série")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if let vote = item.voteAverage {
+                            Text("TMDB \(String(format: "%.1f", vote))")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        chip(status.rawValue, .indigo)
+                        chip(isWatched ? "Visto" : "Por ver", isWatched ? .green : .gray)
+                        if existingMovie != nil { chip("Na minha lista", .blue) }
                     }
                 }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
                 .padding(.horizontal)
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Meu acompanhamento")
                         .font(.headline)
 
@@ -55,28 +63,46 @@ struct MovieDetailFromMediaView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    Toggle("Visto", isOn: $isWatched)
+                    Toggle("Marcar como visto", isOn: $isWatched)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Nota pessoal: \(personalRating, specifier: "%.1f")")
+                        HStack {
+                            Text("Nota pessoal")
+                            Spacer()
+                            Text("\(String(format: "%.1f", personalRating))/10")
+                                .fontWeight(.semibold)
+                        }
                         Slider(value: $personalRating, in: 0...10, step: 0.5)
+                            .tint(.orange)
                     }
                 }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)))
                 .padding(.horizontal)
 
-                Text("Sinopse")
-                    .font(.headline)
-                    .padding(.horizontal)
+                // Sinopse
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Sinopse")
+                        .font(.headline)
 
-                Text(item.overview.isEmpty ? "Sem sinopse disponível." : item.overview)
-                    .padding(.horizontal)
+                    Text(item.overview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                         ? "Sem sinopse disponível."
+                         : item.overview)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)))
+                .padding(.horizontal)
 
+                // Ações
                 Button {
                     saveOrAddMovie()
                 } label: {
-                    Label(existingMovie == nil ? "Adicionar à minha lista" : "Guardar alterações na minha lista",
-                          systemImage: existingMovie == nil ? "plus" : "square.and.arrow.down")
+                    Label(existingMovie == nil ? "Adicionar à minha lista" : "Guardar alterações",
+                          systemImage: existingMovie == nil ? "plus.circle.fill" : "square.and.arrow.down.fill")
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.horizontal)
@@ -85,8 +111,9 @@ struct MovieDetailFromMediaView: View {
                     Button(role: .destructive) {
                         moviesVM.deleteMovie(existingMovie)
                     } label: {
-                        Label("Remover da minha lista", systemImage: "trash")
+                        Label("Remover da minha lista", systemImage: "trash.fill")
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                     }
                     .buttonStyle(.bordered)
                     .padding(.horizontal)
@@ -94,11 +121,20 @@ struct MovieDetailFromMediaView: View {
             }
             .padding(.vertical)
         }
-        .navigationTitle("Detalhe")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            loadInitialState()
-        }
+        .toolbar { ToolbarItem(placement: .principal) { EmptyView() } } // sem "Detalhe"
+        .onAppear { loadInitialState() }
+        .onChange(of: moviesVM.movies) { _, _ in loadInitialState() }
+    }
+
+    private func chip(_ text: String, _ color: Color) -> some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(color.opacity(0.16))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
     }
 
     private func loadInitialState() {
