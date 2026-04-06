@@ -7,10 +7,6 @@
 
 import Foundation
 
-struct TMDBSearchResponse: Codable {
-    let results: [TMDBMovie]
-}
-
 struct TMDBMovie: Codable, Identifiable, Equatable {
     let id: Int
     let title: String
