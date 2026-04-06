@@ -8,6 +8,7 @@ import SwiftUI
 
 struct MovieDetailFromMediaView: View {
     @EnvironmentObject var moviesVM: MoviesViewModel
+    @Environment(\.dismiss) var dismiss
     let item: MediaItem
 
     @State private var status: MovieStatus = .toWatch
@@ -170,6 +171,7 @@ struct MovieDetailFromMediaView: View {
                 isWatched: isWatched
             )
             moviesVM.addMovie(newMovie)
+            dismiss()
         }
     }
 }

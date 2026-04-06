@@ -43,6 +43,7 @@ struct MyListView: View {
             }
             .navigationTitle("Minha Lista")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { moviesVM.loadMovies() }
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Image("AppLogo")

@@ -33,7 +33,7 @@ enum MediaCategory: String, CaseIterable, Identifiable, Codable, Hashable {
     var displayName: String {
         switch self {
         case .popular: return "Populares"
-        case .topRated: return "TMBD"
+        case .topRated: return "TMDB"
         case .nowPlaying: return "Em cartaz"
         case .upcoming: return "Próximos"
         case .onTheAir: return "No ar"
