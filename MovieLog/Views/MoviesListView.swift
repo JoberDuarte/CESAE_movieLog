@@ -79,10 +79,16 @@ struct MoviesListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Image("AppLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 28)
+                    HStack(spacing: 8) {
+                        Image("Image")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 28)
+
+                        Text("MovieLog")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .task {

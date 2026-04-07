@@ -36,6 +36,7 @@ struct Movie: Identifiable, Codable, Equatable, Hashable {
     var personalRating: Double
     var isWatched: Bool
     var createdAt: Date
+    
 
     init(
         id: UUID = UUID(),

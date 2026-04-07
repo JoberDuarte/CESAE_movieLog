@@ -17,6 +17,16 @@ struct SearchMoviesView: View {
         GridItem(.flexible(), spacing: 10)
     ]
 
+   
+    private var filteredMovies: [Movie] {
+        if vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return moviesVM.movies // mostra todos no início
+        }
+        return moviesVM.movies.filter {
+            $0.title.localizedCaseInsensitiveContains(vm.query)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 10) {
@@ -25,7 +35,7 @@ struct SearchMoviesView: View {
                         .textFieldStyle(.roundedBorder)
 
                     Button("Buscar") {
-                        Task { await vm.search() }
+                        Task { await vm.search() } // mantém botão de busca
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -51,7 +61,7 @@ struct SearchMoviesView: View {
                         .padding(.horizontal)
                 }
 
-                if vm.results.isEmpty && !vm.isLoading {
+                if filteredMovies.isEmpty && !vm.isLoading {
                     Spacer()
                     Text("Pesquisa por nome de filme ou série.")
                         .foregroundStyle(.secondary)
@@ -59,11 +69,11 @@ struct SearchMoviesView: View {
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 10) {
-                            ForEach(vm.results) { item in
+                            ForEach(filteredMovies) { movie in
                                 NavigationLink {
-                                    MovieDetailFromMediaView(item: item)
+                                    MovieDetailFromMediaView(item: movie.asMediaItem)
                                 } label: {
-                                    PosterCardView(path: item.posterPath)
+                                    PosterCardView(path: movie.posterPath)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -77,10 +87,16 @@ struct SearchMoviesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Image("AppLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 28)
+                    HStack(spacing: 8) {
+                        Image("Image")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 28)
+
+                        Text("Pesquisar")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .onSubmit(of: .text) {

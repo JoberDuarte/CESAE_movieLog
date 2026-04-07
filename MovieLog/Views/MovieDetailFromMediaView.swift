@@ -4,13 +4,14 @@
 //
 //  Created by iMac11 on 06/04/2026.
 //
+
 import SwiftUI
 
 struct MovieDetailFromMediaView: View {
     @EnvironmentObject var moviesVM: MoviesViewModel
     let item: MediaItem
 
-    @State private var status: MovieStatus = .toWatch
+    @State private var status: MovieStatus? = nil  
     @State private var isWatched: Bool = false
     @State private var personalRating: Double = 0
 
@@ -22,14 +23,12 @@ struct MovieDetailFromMediaView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
 
-                // Poster limpo (sem overlay em cima)
                 AsyncPosterView(path: item.posterPath)
                     .frame(maxWidth: .infinity)
                     .frame(height: 470)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .padding(.horizontal)
 
-                // Infos abaixo do poster
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.title)
                         .font(.title2.bold())
@@ -45,7 +44,9 @@ struct MovieDetailFromMediaView: View {
                     }
 
                     HStack(spacing: 8) {
-                        chip(status.rawValue, .indigo)
+                        if let status {
+                            chip(status.rawValue, .indigo)
+                        }
                         chip(isWatched ? "Visto" : "Por ver", isWatched ? .green : .gray)
                         if existingMovie != nil { chip("Na minha lista", .blue) }
                     }
@@ -56,14 +57,32 @@ struct MovieDetailFromMediaView: View {
                     Text("Meu acompanhamento")
                         .font(.headline)
 
-                    Picker("Estado", selection: $status) {
-                        ForEach(MovieStatus.allCases) { s in
-                            Text(s.rawValue).tag(s)
+                    // Picker manual sem pré-seleção
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Estado")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        HStack(spacing: 8) {
+                            ForEach(MovieStatus.allCases) { s in
+                                Button {
+                                    status = (status == s) ? nil : s
+                                    autoSaveIfExists()
+                                } label: {
+                                    Text(s.rawValue)
+                                        .font(.caption.weight(.semibold))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(status == s ? Color.indigo : Color.indigo.opacity(0.1))
+                                        .foregroundStyle(status == s ? .white : .indigo)
+                                        .clipShape(Capsule())
+                                }
+                            }
                         }
                     }
-                    .pickerStyle(.segmented)
 
                     Toggle("Marcar como visto", isOn: $isWatched)
+                        .onChange(of: isWatched) { _, _ in autoSaveIfExists() }
 
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
@@ -74,13 +93,13 @@ struct MovieDetailFromMediaView: View {
                         }
                         Slider(value: $personalRating, in: 0...10, step: 0.5)
                             .tint(.orange)
+                            .onChange(of: personalRating) { _, _ in autoSaveIfExists() }
                     }
                 }
                 .padding(14)
                 .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)))
                 .padding(.horizontal)
 
-                // Sinopse
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Sinopse")
                         .font(.headline)
@@ -95,21 +114,19 @@ struct MovieDetailFromMediaView: View {
                 .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)))
                 .padding(.horizontal)
 
-                // Ações
-                Button {
-                    saveOrAddMovie()
-                } label: {
-                    Label(existingMovie == nil ? "Adicionar à minha lista" : "Guardar alterações",
-                          systemImage: existingMovie == nil ? "plus.circle.fill" : "square.and.arrow.down.fill")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
-
-                if let existingMovie {
+                if existingMovie == nil {
+                    Button {
+                        saveOrAddMovie()
+                    } label: {
+                        Label("Adicionar à minha lista", systemImage: "plus.circle.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal)
+                } else {
                     Button(role: .destructive) {
-                        moviesVM.deleteMovie(existingMovie)
+                        moviesVM.deleteMovie(existingMovie!)
                     } label: {
                         Label("Remover da minha lista", systemImage: "trash.fill")
                             .frame(maxWidth: .infinity)
@@ -122,7 +139,7 @@ struct MovieDetailFromMediaView: View {
             .padding(.vertical)
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .principal) { EmptyView() } } // sem "Detalhe"
+        .toolbar { ToolbarItem(placement: .principal) { EmptyView() } }
         .onAppear { loadInitialState() }
         .onChange(of: moviesVM.movies) { _, _ in loadInitialState() }
     }
@@ -143,33 +160,34 @@ struct MovieDetailFromMediaView: View {
             isWatched = m.isWatched
             personalRating = m.personalRating
         } else {
-            status = .toWatch
+            status = nil       
             isWatched = false
-            personalRating = item.voteAverage ?? 0
+            personalRating = 0
         }
     }
 
+    private func autoSaveIfExists() {
+        guard let m = existingMovie else { return }
+        var updated = m
+        updated.status = isWatched ? .watched : (status ?? m.status)
+        updated.isWatched = isWatched
+        updated.personalRating = personalRating
+        updated.title = item.title
+        updated.overview = item.overview
+        updated.posterPath = item.posterPath
+        moviesVM.updateMovie(updated)
+    }
+
     private func saveOrAddMovie() {
-        if let m = existingMovie {
-            var updated = m
-            updated.status = isWatched ? .watched : status
-            updated.isWatched = isWatched
-            updated.personalRating = personalRating
-            updated.title = item.title
-            updated.overview = item.overview
-            updated.posterPath = item.posterPath
-            moviesVM.updateMovie(updated)
-        } else {
-            let newMovie = Movie(
-                title: item.title,
-                overview: item.overview,
-                posterPath: item.posterPath,
-                tmdbID: item.tmdbID,
-                status: isWatched ? .watched : status,
-                personalRating: personalRating,
-                isWatched: isWatched
-            )
-            moviesVM.addMovie(newMovie)
-        }
+        let newMovie = Movie(
+            title: item.title,
+            overview: item.overview,
+            posterPath: item.posterPath,
+            tmdbID: item.tmdbID,
+            status: isWatched ? .watched : (status ?? .toWatch),
+            personalRating: personalRating,
+            isWatched: isWatched
+        )
+        moviesVM.addMovie(newMovie)
     }
 }
