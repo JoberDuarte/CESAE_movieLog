@@ -96,16 +96,17 @@ struct MovieDetailFromMediaView: View {
                 .padding(.horizontal)
 
                 // Ações
-                Button {
-                    saveOrAddMovie()
-                } label: {
-                    Label(existingMovie == nil ? "Adicionar à minha lista" : "Guardar alterações",
-                          systemImage: existingMovie == nil ? "plus.circle.fill" : "square.and.arrow.down.fill")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                if existingMovie == nil {
+                    Button {
+                        saveOrAddMovie()
+                    } label: {
+                        Label("Adicionar à minha lista", systemImage: "plus.circle.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal)
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
 
                 if let existingMovie {
                     Button(role: .destructive) {
@@ -125,6 +126,9 @@ struct MovieDetailFromMediaView: View {
         .toolbar { ToolbarItem(placement: .principal) { EmptyView() } } // sem "Detalhe"
         .onAppear { loadInitialState() }
         .onChange(of: moviesVM.movies) { _, _ in loadInitialState() }
+        .onChange(of: status) { _, _ in if existingMovie != nil { saveOrAddMovie() } }
+        .onChange(of: isWatched) { _, _ in if existingMovie != nil { saveOrAddMovie() } }
+        .onChange(of: personalRating) { _, _ in if existingMovie != nil { saveOrAddMovie() } }
     }
 
     private func chip(_ text: String, _ color: Color) -> some View {
