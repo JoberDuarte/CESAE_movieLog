@@ -17,25 +17,14 @@ struct SearchMoviesView: View {
         GridItem(.flexible(), spacing: 10)
     ]
 
-   
-    private var filteredMovies: [Movie] {
-        if vm.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return moviesVM.movies // mostra todos no início
-        }
-        return moviesVM.movies.filter {
-            $0.title.localizedCaseInsensitiveContains(vm.query)
-        }
-    }
-
     var body: some View {
         NavigationStack {
             VStack(spacing: 10) {
                 HStack {
                     TextField("Pesquisar...", text: $vm.query)
                         .textFieldStyle(.roundedBorder)
-
                     Button("Buscar") {
-                        Task { await vm.search() } // mantém botão de busca
+                        Task { await vm.search() }
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -50,18 +39,17 @@ struct SearchMoviesView: View {
                 .padding(.horizontal)
 
                 if vm.isLoading {
+                    Spacer()
                     ProgressView("A pesquisar...")
-                        .padding(.top, 8)
-                }
-
-                if let error = vm.errorMessage {
+                    Spacer()
+                } else if let error = vm.errorMessage {
+                    Spacer()
                     Text(error)
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .padding(.horizontal)
-                }
-
-                if filteredMovies.isEmpty && !vm.isLoading {
+                    Spacer()
+                } else if vm.results.isEmpty {
                     Spacer()
                     Text("Pesquisa por nome de filme ou série.")
                         .foregroundStyle(.secondary)
@@ -69,13 +57,27 @@ struct SearchMoviesView: View {
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 10) {
-                            ForEach(filteredMovies) { movie in
+                            ForEach(vm.results) { item in
                                 NavigationLink {
-                                    MovieDetailFromMediaView(item: movie.asMediaItem)
+                                    MovieDetailFromMediaView(item: item)
                                 } label: {
-                                    PosterCardView(path: movie.posterPath)
+                                    AsyncPosterView(path: item.posterPath)
+                                        .frame(height: 160)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .clipped()
                                 }
                                 .buttonStyle(.plain)
+                            }
+
+                            // Trigger de paginação
+                            if vm.canLoadMore {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .gridCellColumns(3)
+                                    .onAppear {
+                                        Task { await vm.loadMore() }
+                                    }
                             }
                         }
                         .padding(.horizontal, 10)
@@ -92,7 +94,6 @@ struct SearchMoviesView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(height: 28)
-
                         Text("Pesquisar")
                             .font(.headline)
                     }
